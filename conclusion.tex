@@ -1,0 +1,5 @@
+In this paper, we examined the challenges of auto-scaling containerized Java applications in Kubernetes, focusing on Liferay DXP. We highlighted two key issues: the inadequacy of standard HPA metrics—particularly memory usage—as indicators of application health, and the long startup times of Java-based applications. To address these, we proposed a dual strategy: using more reliable JVM-based metrics and anticipating workload peaks through time series modeling.
+
+We attempted to model application behavior with SARIMAX, but the model performed poorly when applied to different instances (containers or “pods”) of the same application—a serious limitation in cloud environments, where instances are frequently created and destroyed \cite{luksa_kubernetes_nodate}.
+
+While time series analysis could still provide value for capturing trends and seasonality \cite{siemsen_6_nodate}, this experiment has made us skeptical of using TSA as the main approach for forecasting resource needs in microservices. Future work will focus on exploring neural networks and potentially reinforcement learning for more robust anticipatory scaling.

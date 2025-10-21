@@ -1,0 +1,38 @@
+To identify suitable parameters for our model, we began with a preliminary analysis conducted in a Google Colab notebook, available in the paper’s GitHub repository.\footnote{\url{https://github.com/brandizzi/PPCA-UnB-MD-2025-2/blob/main/jvm_memory_sarimax.ipynb}} We first plotted memory usage, as shown in Figure 
+
+\begin{figure}
+\centering
+\includegraphics[width=1\linewidth]{memory-usage-time-container.png}
+\caption{Variation in JVM heap memory usage across multiple containers.}
+\label{fig:memory-usage-time-container}
+\end{figure}
+
+
+The data exhibited wide variability, ranging from 1 GB to over 10 GB. We then focused on a single container and plotted a partial autocorrelation function (ACF) over 280 steps (Figure \ref{fig:ACFPLOT-280steps}). Finding no clear long-term correlations, we examined correlations up to 20 steps (Figure \ref{fig:ACFPLOT-30steps}).
+
+\ref{fig:memory-usage-time-container}.
+\begin{figure}
+\centering
+\includegraphics[width=1\linewidth]{ACFPLOT-30steps.png}
+\caption{Partial ACF plot for 20 steps}
+\label{fig:ACFPLOT-30steps}
+\end{figure}
+
+The strongest correlation occurred with the immediately following point, though it was modest. We therefore chose to include correlations up to the fourth next point, which had the second-highest correlation. Since each point represents a two-minute interval, this provides roughly eight minutes of anticipation for resource usage.
+
+\begin{figure}
+\centering
+\includegraphics[width=1\linewidth]{ACFPLOT-280steps.png}
+\caption{Partial ACF plot for 280 steps.}
+\label{fig:ACFPLOT-280steps}
+\end{figure}
+
+
+Based on this analysis, we configured the model as:
+
+\[
+\text{SARIMAX}(0, 1, 1) \times (0, 1, 1, 4)
+\]
+
+
+

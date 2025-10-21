@@ -1,0 +1,26 @@
+Our $\text{SARIMAX}(0, 1, 1) \times (0, 1, 1, 4)$ model produced the results shown in Table \ref{tab:sarimax_results}. While not perfect, the model appeared reasonable enough for initial validation.
+
+\begin{table*}[t]
+\centering
+\caption{Results of the $\text{SARIMAX}(0, 1, 1) \times (0, 1, 1, 4)$ model.}
+\label{tab:sarimax_results}
+\begin{tabular}{lcccc}
+\toprule
+\textbf{Parameter} & \textbf{Coefficient} & \textbf{Std. Error} & \textbf{z-value} & \textbf{p-value} \\
+\midrule
+$ma(L1)$ & -0.9273 & 0.018 & -50.988 & 0.000 \\
+$ma_S(L4)$ & -1.0135 & 0.021 & -48.775 & 0.000 \\
+$\sigma^2$ & 0.0749 & 0.006 & 12.789 & 0.000 \\
+\midrule
+\multicolumn{5}{l}{\textbf{Model diagnostics:}} \\
+\multicolumn{2}{l}{AIC = 171.005} & \multicolumn{2}{l}{BIC = 183.940} & HQIC = 176.060 \\
+\multicolumn{2}{l}{Ljung–Box (L1) Q = 2.32 (p = 0.13)} & \multicolumn{2}{l}{JB = 6.80 (p = 0.03)} & H = 0.64 (p = 0.00) \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+We then attempted to forecast metrics from a different container. While a full analysis was planned, the root mean square error (RMSE) alone reached roughly 10 GB—comparable to the maximum values in the time series—indicating that the model failed to generalize.
+
+Although some variation between application instances was expected, the discrepancy was too large. This suggests that SARIMAX may not be ideal for forecasting resource needs for auto-scaling, where accurate anticipatory predictions across instances are critical.
+
+Our initial plan would be to use other traditional model validation metrics, such as confusion matrices and $R^2$. The discrepancy of the RMSE was so large, though, we thought there is not much future in investigating the module.

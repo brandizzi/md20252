@@ -1,0 +1,46 @@
+\subsection{Containers}
+\IEEEPARstart{C}{ontainers} are packages that include all the components necessary to run the software application it encapsulates. They are isolated from one another and from the host operating system during runtime, allowing applications to run consistently across different environments (even different operating systems and hardware).\cite{moreau_containers_2023} A container is distributed as a container image, which is executed by a container runtime.\cite{merkel_docker_2014} A container is basically lightweight virtual machine that shares the host kernel in an isolated way:  lean, inexpensive and quick to create and destroy. For this reason, containers became popular for providing isolation while maintaining efficient resource usage.\cite{watada_emerging_2019} Containers proved especially well suited for use in cloud computing context.\cite{moreau_containers_2023} 
+
+Managing many containers, however, can be complex, which is why orchestrators like Kubernetes are widely used \cite{watada_emerging_2019}. A key feature of these platforms is auto-scaling, which automatically adjusts an application’s resource usage (e.g., CPU, memory, disk) with minimal human intervention \cite{lorido-botran_review_2014}.
+
+\subsection{Orchestrators}
+
+A \textbf{container orchestrator} is a system that defines when and how containers are selected, deployed, controlled, and monitored in a dynamic environment. It manages the runtime of containerized applications across one or more nodes—unlike tools such as Docker Compose, which only handle container startup on a single machine~\cite{casalicchio_container_2019}.
+
+Modern orchestrators can dynamically create and destroy containers and, when integrated with virtual machine (VM) providers, even provision or terminate VM nodes. Their core functionalities typically include~\cite{casalicchio_container_2019}:
+
+\begin{itemize}
+  \item \textbf{Resource management:} reserving and limiting CPU, memory, and storage resources for specific containers.
+  \item \textbf{Health checks:} continuously assessing whether containers operate as expected and automatically recreating failed instances.
+  \item \textbf{Scheduling:} determining the number and placement of container instances across available nodes.
+  \item \textbf{Load balancing:} distributing incoming requests among multiple instances of the same application to optimize performance.
+  \item \textbf{Auto-scaling:} adjusting the number of running containers based on real-time application metrics such as CPU or memory usage.
+\end{itemize}
+
+Prominent container orchestration systems include Kubernetes, Docker Swarm, Apache Mesos, Red Hat OpenShift, and HashiCorp Nomad~\cite{malviya_comparative_2022}.
+
+\subsection{Auto-scaling}
+
+An \textbf{auto-scaling system}, or \textbf{auto-scaler}, is a software mechanism that automatically adjusts an application's computational resource usage (such as CPU, memory, and storage) with minimal or no human intervention~\cite{lorido-botran_review_2014}.  
+
+Auto-scalers can be categorized into two main types: \textbf{horizontal scaling}, which adds or removes instances of a service, and \textbf{vertical scaling}, which adjusts the resources allocated to an existing instance.
+
+\textbf{Vertical auto-scalers} provide an application with the most efficient amount of resources by allocating more or less capacity to the same number of existing instances. It can be made by changing the resources assigned to a running virtual machine (VM) or container—for example, increasing or reducing the allocated CPU power or memory~\cite[p.~560]{loridobotran_review_2014}—or by recreating the instances with new limits for resource usage. In Kubernetes, for instance, the \textit{Vertical Pod Autoscaler} (VPA) can either recreate pods with updated resource allocations (removing the old ones afterward) or modify pod specifications dynamically while they are running~\cite{lakshmikanthan_optimizing_2021, kubernetes_authors_resize_2025}.
+
+\textbf{Horizontal auto-scalers}, for its turn, optmize the amount of resources for an application by creating or deleting instances of it. In the context of cloud computing and auto-scaling systems, horizontal scaling typically involves creating or terminating virtual machines (VMs) or containers. In this approach, the resource unit is the server replica (running on a VM or container), and new replicas are added or removed as needed~\cite[p.~560]{lorido-botran_review_2014}. Kubernetes \textit{Horizontal Pod Autoscaler} (HPA) is an example of it, as it creates or decommissions pods based on predefined targets for average CPU and memory utilization across the application's containers~\cite{lakshmikanthan_optimizing_2021}.
+
+\subsection{Liferay (then other sections for the interaction)}
+
+At Liferay, we deploy our flagship product, Liferay DXP, as a containerized application on Kubernetes. One of the features we offer is the possibility of utilizing Kubernetes HorizontalPodAutoscaler (HPA)~\cite{kubernetes_authors_horizontal_2024} for horizontal auto-scalng.
+
+using the HorizontalPodAutoscaler (HPA) for scaling. Liferay DXP, being a Java-based web portal platform, presents specific challenges:
+
+\begin{itemize}
+\item Standard HPA metrics like CPU and memory are unreliable for scaling. Memory is particularly misleading, as the JVM often holds on to it regardless of actual application health \cite{sullins_jmx_2002}.
+\item Traditional Java applications have slow startup times; a typical DXP portal can take two minutes or more to become fully operational.
+\end{itemize}
+
+These issues require identifying metrics that better reflect application health and anticipating scaling needs during peak loads. For this paper, we will experiment with the internal JVM memory usage and some time series analysis (TSA) approach.
+
+
+

@@ -1,0 +1,17 @@
+This paper focuses on a subset of the CRISP-DM stages.
+
+Liferay collects a large volume of metrics, but accessing them is not straightforward. With a global customer base, we must comply with contractual obligations and regulations such as the EU’s General DAta Protection Regulation (GDPR) and Brazil’s Lei Geral de Proteção de Dados (LGPD). Consequently, access to production data is still under negotiation. For this study, we used metrics from our own site and customer portal.
+
+The data, collected in Prometheus servers in production, was exported to CSV files during the \textit{Data Acquisition} stage. We gathered JVM heap size metrics from September 1 to September 14, 2025.
+
+In the \textit{Data Understanding and Preparation} stage, we processed these files, which contained over six million rows and dozens of columns. To simplify analysis, we removed irrelevant columns and data points (notably non-heap memory usage) and converted data into appropriate formats, such as dates.
+
+\begin{figure}[h!]
+\includegraphics[width=0.5\textwidth]{datapointcontainer.png}
+\caption{Schematic representation of the selection of data points for training and validation.}
+\label{fig:datapoint_selection}
+\end{figure}
+
+Our initial approach models the metrics as a time series. We hypothesize that an SARIMAX model \cite{mulla_times_2024} can forecast request peaks minutes before an instance becomes overloaded, enabling proactive provisioning of new instances, while remaining open to exploring alternative time series models.
+
+For \textit{evaluation}, we use cross-validation across different containers to determine if a SARIMAX model trained on one instance generalizes to another. Since SARIMAX is autoregressive, overlapping points between training and testing intervals are excluded. Figure \ref{fig:datapoint_selection} illustrates the data selection strategy.

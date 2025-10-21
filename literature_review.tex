@@ -1,0 +1,9 @@
+A solid understanding of Kubernetes is essential, so we rely primarily on \cite{luksa_kubernetes_nodate}, supplemented by \cite{kubernetes_authors_horizontal_2024}.
+
+To account for Java Virtual Machine behavior, \cite{sullins_jmx_2002} serves as our main reference, particularly for internal (JMX) metrics and garbage collector behavior. Despite its age, it remains relevant for interpreting JVM metrics.
+
+A cornerstone of our research is the survey by \cite{lorido-botran_review_2014}, which provides a comprehensive overview of auto-scaling techniques. Though older, it remains valuable alongside more recent surveys \cite{masdari_survey_2020, qu_auto-scaling_2018}.
+
+While our broader goal includes exploring various approaches, we focus here on time series methods. Introductory works such as \cite{shumway_time_2017, siemsen_6_nodate} were particularly useful, while studies like \cite{yuan_using_2020, watada_emerging_2019} offered promising early results. Additionally, \cite{yuan_time_2024, dantas_autoscaling_2023} provide insights specific to Kubernetes, though their applicability to our objectives still requires assessment.
+
+For this project, we adopt the Seasonal Autoregressive Integrated Moving Average with Exogenous Regressors (SARIMAX) model. The paper describing it \cite{mulla_times_2024} became a key reference, as SARIMAX is a powerful, widely supported time series model and effectively a superset of many alternatives.
