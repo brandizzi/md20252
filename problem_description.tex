@@ -1,5 +1,12 @@
+\IEEEPARstart{T}{his} work addresses the following question: how can we optimally create and destroy instanceds of a Java-based application running on a Kubernetes cluster?
+
+This process, known as \textbf{auto-scaling}, is complex by itself: it is an active research area with many fronts and promising approaches, but yet not solved in an industry-level. It is especially complicated for Java web applications, because JVM has specific behaviors that not fit well with many autos-scalers. To understand that, it is fundamental to understand how containers and orchestrators work.
+
+The goals of this paper is to evaluate a set of possible time series analysis models as predictors for memory usage. More specifically, it analyzes the use of models based on moving averages and auto-regression.
+
 \subsection{Containers}
-\IEEEPARstart{C}{ontainers} are software packages that bundle all components required to execute an application. They operate in isolation from one another and from the host operating system (OS) at runtime, ensuring consistent behavior across heterogeneous environments, including different operating systems and hardware configurations~\cite{moreau_containers_2023}. Each container is distributed as a \textit{container image} and executed by a \textit{container runtime}~\cite{merkel_docker_2014}. Conceptually, a container can be viewed as a lightweight virtual machine (VM) that shares the host kernel in an isolated manner—lean, cost-effective, and fast to create or destroy. This efficiency has made containers popular for providing process isolation while maintaining low resource overhead~\cite{watada_emerging_2019}. Containers are particularly well suited to cloud computing environments~\cite{moreau_containers_2023}.
+{C}{ontainers} are self-contained software packages that include everything needed to run an application. They operate in isolation from each other and the host OS, ensuring consistent behavior across different environments and hardware configurations~\cite{moreau_containers_2023}.
+~\cite{moreau_containers_2023}. Each container is distributed as a \textit{container image} and executed by a \textit{container runtime}~\cite{merkel_docker_2014}. Conceptually, a container are lightweight virtual machine (VM) that shares the host kernel in an isolated manner—lean, cost-effective, and fast to create or destroy. This efficiency has made containers popular for providing process isolation while maintaining low resource overhead~\cite{watada_emerging_2019}. Containers are particularly well suited to cloud computing environments~\cite{moreau_containers_2023}.
 
 Managing a large number of containers, however, can be complex. To address this challenge, \textit{container orchestrators} such as Kubernetes are widely employed~\cite{watada_emerging_2019}
 
@@ -17,7 +24,17 @@ Modern orchestrators can dynamically create and destroy containers and, when int
 	\item \textbf{Auto-scaling:} Adjusting the number of running containers based on real-time performance metrics such as CPU or memory usage.
 \end{itemize}
 
-Prominent orchestration platforms include Kubernetes, Docker Swarm, Apache Mesos, Red Hat OpenShift, and HashiCorp Nomad~\cite{malviya_comparative_2022}. Kubernetes is one of the most popular options, and it is the orchestrator of interest for this studymemory-usage-time-container.png.
+Prominent orchestration platforms include Kubernetes, Docker Swarm, Apache Mesos, Red Hat OpenShift, and HashiCorp Nomad~\cite{malviya_comparative_2022}. Kubernetes is one of the most popular options, and it is the orchestrator of interest for this.
+
+\subsection{Kubernetes}
+
+Kubernetes is a container orchestration platform that automates the creation, disposal, and reconfiguration of containers. However, the fundamental unit of execution in Kubernetes is not the container itself, but the \textbf{pod}. A pod is a group of one or more containers that share resources such as storage volumes, network interfaces, and configuration settings.~\cite{luksa_kubernetes_nodate}
+
+Although pods can be created directly by submitting configuration files, it is generally more practical and scalable to manage them through higher-level objects that automatically define and control their lifecycle. These objects are interpreted by internal Kubernetes components known as \textbf{controllers}, which ensure that the actual state of the system matches the desired state described in the specification. The combination of the specification object and the resources it governs—such as pods and related assets—is commonly referred to as a \textbf{workload}.
+
+Among these specification objects, \textbf{Deployments} are particularly relevant. A Deployment defines both a configuration template for creating pods and the desired number of replicas to maintain.~\cite{luksa_kubernetes_nodate} When more pods are required, the number of replicas can be increased; when fewer are needed, it can be reduced. Because Kubernetes operates in an almost purely declarative manner, any change to the Deployment specification prompts the system to automatically reconcile the running state with the new configuration.
+
+This declarative mechanism underpins Kubernetes’ approach to \textbf{auto-scaling}: adjustments to the number of replicas in Deployments (or similar objects) dynamically scale workloads in response to system demands.
 
 \subsection{Auto-scaling}
 
@@ -25,21 +42,56 @@ An \textbf{auto-scaling system} (or \textbf{auto-scaler}) is a mechanism that au
 
 Auto-scalers are commonly divided into two categories: \textbf{horizontal scaling}, which adds or removes instances of a service, and \textbf{vertical scaling}, which adjusts the resources allocated to existing instances.
 
-\textbf{Vertical auto-scaling} seeks to provide optimal resource allocation by increasing or decreasing the capacity of running instances. This adjustment can be achieved by modifying the resources assigned to a VM or container—for example, altering CPU or memory quotas~\cite[p.~560]{lorido-botran_review_2014}—or by recreating instances with updated resource limits. In Kubernetes, the \textit{Vertical Pod Autoscaler} (VPA) can either recreate pods with updated resource allocations or modify pod specifications dynamically while they are running~\cite{lakshmikanthan_optimizing_2021, kubernetes_authors_resize_2025}.
+\textbf{Vertical auto-scaling} adjusts the resources allocated to existing instances, such as CPU or memory quotas. This may involve modifying running VMs or containers, or recreating them with updated limits.~\cite{lorido-botran_review_2014} In Kubernetes, the \textit{Vertical Pod Autoscaler} (VPA) can either recreate pods with updated resource allocations or modify pod specifications dynamically while they are running~\cite{lakshmikanthan_optimizing_2021, kubernetes_authors_resize_2025}.
 
 \textbf{Horizontal auto-scaling}, in contrast, optimizes application resource usage by creating or removing instances of the application. In cloud environments, this typically involves provisioning or terminating VMs or containers. In this approach, the resource unit is the server replica (running on a VM or container), and replicas are added or removed according to demand~\cite[p.~560]{lorido-botran_review_2014}.  
 
-In Kubernetes, the \textit{HorizontalPodAutoscaler} (HPA)~\cite{kubernetes_authors_horizontal_2024} implements this approach by adjusting the number of pods based on predefined targets for average CPU or memory utilization across the application's containers~\cite{lakshmikanthan_optimizing_2021}.
+\subsection{HorizontalPodAutoscaler}
+
+In Kubernetes, the \textit{HorizontalPodAutoscaler} (HPA)~\cite{kubernetes_authors_horizontal_2024} implements this approach by adjusting the number of pods based on predefined targets for average CPU or memory utilization across the application's containers~\cite{lakshmikanthan_optimizing_2021}. Its behavior responds to the average resource usage of all the pods from an application.
+
+To leveraging HPA, a user has to create an \texttt{HorizontalPodAutoscaler} object that contains both one or more \textbf{selectors}, and one or more \textbf{target values}, usually for CPU and memory usage from the pod, although other values are possible with extensions.~\cite{kubernetes_authors_horizontal_2024} Algorithm~\ref{alg:hpa-scaling} describes how HPA decides to scale up or down a workload.
+
+\begin{algorithm}
+\caption{Horizontal Pod Autoscaler (HPA) Scaling Procedure}
+\label{alg:hpa-scaling}
+\DontPrintSemicolon
+\KwIn{
+    Target metric $desiredMetric$, tolerance margin $tolerance$, interval $interval$
+}
+\KwOut{
+    Updated workload scale $workload.scale$
+}
+\BlankLine
+\While{true}{
+    $currReplicas \gets$ current number of pods\;
+    $currMetric \gets \dfrac{\sum_{i=1}^{currReplicas} podsMetric[i]}{currReplicas}$\;
+    $ratio \gets \dfrac{currMetric}{desiredMetric}$\;
+    \eIf{$ratio \in [1 - tolerance, 1 + tolerance]$}{
+        skip \tcp*[r]{acceptable usage}
+    }{
+        $desiredReplicas \gets \lceil currReplicas \times ratio \rceil$\;
+        \If{$desiredReplicas \neq currReplicas$}{
+            $workload.scale \gets desiredReplicas$\;
+        }
+    }
+    Wait for $interval$ \tcp*[r]{Default: 15s}
+}
+\end{algorithm}
+
+In our experience, this algorithm is effective but has a series of drawbacks in practice. Most notably, it is not very intuitive: quite often, the result demands some deep investigation. It is also too conservative when it comes to turning down pods: to scale down a workload, it is necessary that their resource usage get significantly lower than the one before it was scaled up.
+
+These issues tend to be aggravated with applications running in specific platforms, as is the case of the object of this work: Liferay PaaS.
 
 \subsection{Liferay DXP}
 
 \textit{Liferay Portal} is an open-source  Java-based platform for developing web portals~\cite{ferrer_juan_alisis_2025}. With over two decades of development, it provides a rich set of features—including content management, object storage, and permission management—and offers extensive customization capabilities that enable the creation of bespoke applications~\cite{criollo_jimenez_desarrollo_2025}. On top of Liferay Portal, Liferay Inc., the company behind the project, provides \textit{Liferay Digital Experience Platform (DXP)}, a commercially supported \textit{digital experience platform} that integrates and executes internal and external business processes~\cite{koppula_liferay_2025}.
 
-Liferay DXP is also offered as a \textit{Platform-as-a-Service} (PaaS) solution, known as \textit{Liferay PaaS}, which operates in Kubernetes clusters hosted on Google Cloud Platform (GCP), specifically on Google Kubernetes Engine (GKE). Because these clusters are shared among customers, most users lack direct access to cluster-level configuration but retain the ability to leverage key Kubernetes features, including HPA for automatic scaling of their Liferay instances.
+Liferay DXP is also offered as a \textit{Platform-as-a-Service} (PaaS) solution, known as \textit{Liferay PaaS}, which operates in Kubernetes clusters hosted on Google Kubernetes Engine (GKE), the managed Kuberentes service from Google Cloud Platform (GCP). Because these clusters are shared among customers, most users lack direct access to cluster-level configuration but retain the ability to leverage key Kubernetes features, including HPA for automatic scaling of their Liferay instances.
 
 The use of HPA with Liferay DXP introduces particular challenges. The application is a large, Java-based system with thousands of features and deep extensibility—characteristics that complicate auto-scaling behavior~\cite{lakshmikanthan_optimizing_2021}. In particular, Java Virtual Machines (JVMs) are known to be resource-intensive and slow to release memory~\cite{bruno_study_2019, patricio_garbage_nodate}. Since HPA relies on resource metrics such as memory usage to make scaling decisions, delayed memory release can cause the system to postpone scaling down, leading to the retention of unnecessary instances and increased operational costs~\cite{sullins_jmx_2002}.
 
-Figure~\ref{fig:memory-usage-long-time} illustrates a real-world incident in which a temporary traffic spike caused sustained high memory usage for 24 hours. As a result, HPA maintained an additional pod long after demand had subsided, thereby incurring unnecessary costs. CPU utilization, another commonly used HPA metric, is generally unsuitable for Java web applications, which are typically input/output (I/O)-bound rather than CPU-bound.
+Figure~\ref{fig:memory-usage-long-time} illustrates a real-world incident in which a temporary traffic spike caused sustained high memory usage for 24 hours. As a result, HPA maintained an additional pod long after demand had subsided, thereby incurring unnecessary costs.  CPU utilization, another commonly used HPA metric, is generally unsuitable for Java web applications, which are typically input/output (I/O)-bound rather than CPU-bound.
 
 \begin{figure}
 	\centering
@@ -51,3 +103,65 @@ Figure~\ref{fig:memory-usage-long-time} illustrates a real-world incident in whi
 In addition, Java-based web applications often exhibit long startup times~\cite{lakshmikanthan_optimizing_2021}. Liferay, with its extensive feature set, is no exception: a moderately customized instance may take from two to ten minutes to become fully operational. Consequently, when HPA reacts to increased load, new pods may be launched too late to effectively mitigate performance degradation.
 
 To address these challenges, two strategies are investigated in this study. First, more responsive metrics are employed through the use of custom metrics exposed via a Prometheus adapter~\cite{noauthor_horizontal_2025}, using the JVM heap size as the primary indicator. Second, time-series forecasting algorithms are explored to enable proactive scaling decisions based on predicted demand.
+
+\subsection{Time Series Analysis techniques}
+
+There are many techniques for time series analysis (TSA). In special there is a family of algorithms based on averaging and autocorrelation that has been proven very effective. Here is a revision of them.
+
+\subsubsection{Moving Average (MA)}
+
+The moving average (MA) function, denoted as $\text{MA}(q)$, computes the average of $q$ consecutive points in a time series. It is useful for highlighting long-term trends by smoothing short-term fluctuations. Larger MA windows produce smoother plots with fewer extreme variations, helping to visually identify underlying trends. Figure \ref{fig:moving-average-smothing} shows, for example, how it can smooth the chart of JVM memory usage from two pods, highlight trends.. 
+
+\begin{figure}
+	\centering
+	\includegraphics[width=1\linewidth]{ma-time-series-raw.png}
+    \includegraphics[width=1\linewidth]{ma-time-series-10.png}
+    \includegraphics[width=1\linewidth]{ma-time-series-100.png}
+	\caption{Memory usage ploted without transformation, with MA(10) and MA(100). Note how the plot get smoother with higher order moving averages.}
+	\label{fig:moving-average-smothing}
+\end{figure}
+
+However, while MA can be used for short-term forecasting, it performs poorly in long-term prediction. 
+
+\subsubsection{Auto-Regression (AR)}
+
+Auto-regression, denoted $\text{AR}(p)$, models a time series as a linear regression of its past $p$ values. By incorporating historical memory usage, AR models can capture temporal dependencies more effectively than MA.
+
+\subsubsection{Auto-Regressive Moving Average (ARMA)}
+
+ARMA models combine the strengths of AR and MA, modeling both the auto-regressive structure of past observations and the moving average of past forecast errors. This allows ARMA models to better capture both trends and short-term fluctuations simultaneously, providing improved predictive capability over simple AR or MA models.
+
+\subsubsection{Auto-Regressive Integrated Moving Average (ARIMA)}
+
+ARIMA extends ARMA by including differencing to make non-stationary time series stationary. The integration component ($d$) represents the number of differences applied. If $d = 1$, for example, the series is differentiated into a new series defined by
+
+$$y_t^\prime = y_t-y{t-1}$$
+
+If $d = 2$, then the series will be
+
+\[
+\begin{aligned}
+y_t^{\prime\prime} 
+    &= y_t^\prime - y_{t-1}^\prime \\
+    &= (y_t - y_{t-1}) - (y_{t-1} - y_{t-2}) \\
+    &= y_t - 2y_{t-1} + y_{t-2}
+\end{aligned}
+\]
+
+
+ARIMA is particularly useful for patterns that exhibit slow drifts or trends over time, which cannot be captured by ARMA alone.
+
+\subsubsection{ARIMA with Exogenous Variables (ARIMAX)}
+
+ARIMAX models extend ARIMA by incorporating exogenous variables that can influence the time series. Basically, this allows other factors beyond the time series itself affect the result. For this reason, they are widely used. In fact, it is unusual to execute TSA \textit{without} some exogenous factors.
+
+Unfortunately, the dataset analyzed in this paper lacks external factors, so exogenous models are not part of the analysis, being proper for a future work.
+
+\subsubsection{Seasonal ARIMA (SARIMA)}
+
+SARIMA models introduce seasonal components to ARIMA, allowing them to model periodic patterns in the data. Those can be fitting for analyzing JVM memory usage patterns from web applications because these applications indeed have long-term trends (such as working hours, weekly usage, monthly peaks etc.)
+
+\subsubsection{Seasonal ARIMA with Exogenous Variables (SARIMAX)}
+
+SARIMAX combines SARIMA's seasonal modeling with ARIMAX's capability of using external predictors. This model is the most flexible among those explored, enabling pod-level forecasting that accounts for both repeating seasonal trends and external influences. Indeed, all other models are in a way specialized versions of SARIMAX. Since the current dataset contains no other information to act as exogenous factors, though, it cannot be applied to the current investigation.
+

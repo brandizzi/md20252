@@ -1,17 +1,39 @@
+\begin{table*}[h]
+\centering
+\begin{tabular}{|l|l|p{10cm}|}
+\hline
+\textbf{Model} & \textbf{Hyperparameters} & \textbf{Justification} \\
+\hline
+MA & $q=2$ & Higher $q$ gives smoother functions, but too high can make forecasts depend too much on past values; $q=2$ balances smoothness and stability. Note: MA models can become highly unstable for forecasting if $q$ is too large. \\
+\hline
+AR & $p=4$ & In general, too many previous values for auto-regression can lead to overfitting or instability. The paper uses past 4 values to capture dependencies; moderate number of past points for regression. \\
+\hline
+ARMA & $p=4, q=2$ & Combines AR(4) and MA(2) to capture both past dependencies and smoothing without instability. \\
+\hline
+ARIMA & $p=4, d=1, q=2$ & $d=1$ to difference the non-stationary series once: deeper differentiation is rarely used; $p$ and $q$ same as ARMA to model past dependencies and smoothing. \\
+\hline
+SARIMA & $p=4, d=1, q=2, P=1, D=1, Q=0, s=10$ & $s=10$ Here, much better values could be used. Ideally, we would like to capture daily patterns (since sites are accessed quite often in the same hours); maybe even weekly patterns. However, 20-minute seasonal period was chose due to computational limits; $P=1$ to capture hourly pattern dependencies; $Q=0$ because seasonal MA adds little; $D=1$ to difference seasonal non-stationarity. \\
+\hline
+\end{tabular}
+\caption{Hyperparameters chosen for time series models.}
+\label{tab:hyperparams}
+\end{table*}
+
 This paper focuses on a subset of the CRISP-DM stages.
 
-Liferay collects a large volume of metrics, but accessing them is not straightforward. With a global customer base, we must comply with contractual obligations and regulations such as the EU’s General DAta Protection Regulation (GDPR) and Brazil’s Lei Geral de Proteção de Dados (LGPD). Consequently, access to production data is still under negotiation. For this study, we used metrics from our own site and customer portal.
+Liferay collects a large volume of metrics, but accessing them is not straightforward. With a global customer base, compliance with contractual obligations and regulations such as the EU’s General Data Protection Regulation (GDPR) and Brazil’s Lei Geral de Proteção de Dados (LGPD) is required. Consequently, access to data has been limited so far: only internal JVM memory usage is available, and only for the internal portal.
 
-The data, collected in Prometheus servers in production, was exported to CSV files during the \textit{Data Acquisition} stage. We gathered JVM heap size metrics from September 1 to September 14, 2025.
+The data, collected in Prometheus servers in production, was exported to CSV files during the \textit{Data Acquisition} stage. JVM heap size metrics were gathered from June 1 to October 29.
 
-In the \textit{Data Understanding and Preparation} stage, we processed these files, which contained over six million rows and dozens of columns. To simplify analysis, we removed irrelevant columns and data points (notably non-heap memory usage) and converted data into appropriate formats, such as dates.
+In the \textit{Data Understanding and Preparation} stage, these files, containing almost 400 million rows and 16 columns, were processed. Irrelevant columns and data points (notably non-heap memory usage) were removed, and data was converted into appropriate formats, such as dates, to simplify analysis.
 
-\begin{figure}[h!]
-\includegraphics[width=0.5\textwidth]{datapointcontainer.png}
-\caption{Schematic representation of the selection of data points for training and validation.}
-\label{fig:datapoint_selection}
-\end{figure}
 
-Our initial approach models the metrics as a time series. We hypothesize that an SARIMAX model \cite{mulla_times_2024} can forecast request peaks minutes before an instance becomes overloaded, enabling proactive provisioning of new instances, while remaining open to exploring alternative time series models.
+From the the data set, the data of the five longest-living pods were selected. For each of these pods, we modeled them with with MA, AR, ARMA, ARIMA and SARIMA. For that, the SARIMAX \cite{mulla_times_2024} implementation from statsmodels was used. Since SARIMAX is a generalization of all these models, we just needed to tweak the parameters accordingly.
 
-For \textit{evaluation}, we use cross-validation across different containers to determine if a SARIMAX model trained on one instance generalizes to another. Since SARIMAX is autoregressive, overlapping points between training and testing intervals are excluded. Figure \ref{fig:datapoint_selection} illustrates the data selection strategy.
+For \textit{evaluation}, each pod data is split into training and test sets. Then the models forecast the test sets and a series of performance metrics is calculated. Here, the mean absolute percentage error (MAPE) and $R^2$ are used to compare the results, since they are more easily interpretable.
+
+\subsection{Hyperparameter selection}
+
+For each model, we choose the hyperparameters from the Table \ref{tab:hyperparams}.
+
+Since this is an exploratory work, these are only experimental values. The hyperparameters for SARIMA could use special attention, because there are patterns that are known for site access (daily, weekly etc.) which impacts resource usage. However, this work did not have the computing power for such deeper values, so we only explored shorter, less relevant seasonality.

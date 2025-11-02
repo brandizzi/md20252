@@ -3,7 +3,12 @@
 \usepackage{graphicx}
 \usepackage{amsmath}
 \usepackage{hyperref}
-\usepackage{booktabs}
+\usepackage{tabularx} 
+\usepackage{booktabs,multirow}
+
+\usepackage[ruled,vlined]{algorithm2e}
+
+
 \ifCLASSINFOpdf
 \else
 \fi
@@ -11,7 +16,7 @@
 \hyphenation{op-tical net-works semi-conduc-tor}
 
 \begin{document}
-\title{Exploring SARIMAX analysis for forecasting internal JVM memory consumption in Kubernetes clusters}
+\title{Exploring Time Series Analysis Techiniques for Forecasting Internal JVM Memory Usage in Kubernetes Clusters}
 
 \author{Adam Brandizzi
 \\
@@ -33,7 +38,7 @@ Cloud Computing, Containers, Kubernetes, Auto-scaling, Web Development, Java
 \input{introduction}
 
 \section{Problem description}
-\input{probem_description}
+\input{problem_description}
 
 \section{Literature review}
 \input{literature_review}
@@ -41,7 +46,7 @@ Cloud Computing, Containers, Kubernetes, Auto-scaling, Web Development, Java
 \section{Methodology}
 \input{methodology}
 
-\section{Exploratory Analysis}
+%\section{Exploratory Analysis}
 \input{exploratory_analysis}
 
 \section{Results}

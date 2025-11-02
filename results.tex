@@ -1,26 +1,68 @@
-Our $\text{SARIMAX}(0, 1, 1) \times (0, 1, 1, 4)$ model produced the results shown in Table \ref{tab:sarimax_results}. While not perfect, the model appeared reasonable enough for initial validation.
+It is evident from the results (Table \ref{tab:metrics_per_method_rounded}) that none of the models had a remarkable performance. $R^2$ was very low for all of them (none even got a positive result, thus being worse than just using the average value) and MAPE didn't even get below 20%.
 
-\begin{table*}[t]
+MA and AR, alone, are especially por predictors. We have some extreme values, such as MAPE of over 99%. Maybe AR could get better results with other hyperparameters, but such poor performance tends to discourage this experimentation.
+
+\begin{table}[h!]
 \centering
-\caption{Results of the $\text{SARIMAX}(0, 1, 1) \times (0, 1, 1, 4)$ model.}
-\label{tab:sarimax_results}
-\begin{tabular}{lcccc}
+\begin{tabular}{l l r r}
 \toprule
-\textbf{Parameter} & \textbf{Coefficient} & \textbf{Std. Error} & \textbf{z-value} & \textbf{p-value} \\
+\textbf{Method} & \textbf{Pod} & \textbf{R2} & \textbf{MAPE} \\ 
 \midrule
-$ma(L1)$ & -0.9273 & 0.018 & -50.988 & 0.000 \\
-$ma_S(L4)$ & -1.0135 & 0.021 & -48.775 & 0.000 \\
-$\sigma^2$ & 0.0749 & 0.006 & 12.789 & 0.000 \\
+\multirow{5}{*}{MA(2)} 
+    & liferay-69cddb688-xkn4z & -14.05 & 99.98 \\ 
+    & liferay-d75dd575-5snn6  & -8.49  & 99.97 \\ 
+    & liferay-d75dd575-9ll42  & -8.59  & 99.99 \\ 
+    & liferay-d75dd575-bkcxz  & -15.57 & 99.99 \\ 
+    & liferay-d75dd575-zhg5p  & -7.50  & 99.98 \\ 
 \midrule
-\multicolumn{5}{l}{\textbf{Model diagnostics:}} \\
-\multicolumn{2}{l}{AIC = 171.005} & \multicolumn{2}{l}{BIC = 183.940} & HQIC = 176.060 \\
-\multicolumn{2}{l}{Ljung–Box (L1) Q = 2.32 (p = 0.13)} & \multicolumn{2}{l}{JB = 6.80 (p = 0.03)} & H = 0.64 (p = 0.00) \\
+\multirow{5}{*}{AR(4)} 
+    & liferay-69cddb688-xkn4z & -13.59 & 97.85 \\ 
+    & liferay-d75dd575-5snn6  & -8.19  & 97.58 \\ 
+    & liferay-d75dd575-9ll42  & -8.39  & 98.20 \\ 
+    & liferay-d75dd575-bkcxz  & -15.07 & 97.64 \\ 
+    & liferay-d75dd575-zhg5p  & -7.30  & 97.49 \\ 
+\midrule
+\multirow{5}{*}{ARMA(4,2)} 
+    & liferay-69cddb688-xkn4z & -0.10  & 23.51 \\ 
+    & liferay-d75dd575-5snn6  & -1.09  & 35.44 \\ 
+    & liferay-d75dd575-9ll42  & -0.44  & 28.97 \\ 
+    & liferay-d75dd575-bkcxz  & -0.71  & 24.17 \\ 
+    & liferay-d75dd575-zhg5p  & -3.26  & 57.53 \\ 
+\midrule
+\multirow{5}{*}{ARIMA(4,1,2)} 
+    & liferay-69cddb688-xkn4z & 0.00   & 25.30 \\ 
+    & liferay-d75dd575-5snn6  & 0.00   & 31.17 \\ 
+    & liferay-d75dd575-9ll42  & 0.00   & 30.31 \\ 
+    & liferay-d75dd575-bkcxz  & 0.00   & 22.55 \\ 
+    & liferay-d75dd575-zhg5p  & -0.01  & 35.81 \\ 
+\midrule
+\multirow{5}{*}{SARIMA(4,1,2)(1,1,0)\_20} 
+    & liferay-69cddb688-xkn4z & -1.24 & 39.81 \\ 
+    & liferay-d75dd575-5snn6  & -0.51 & 42.47 \\ 
+    & liferay-d75dd575-9ll42  & -0.54 & 44.14 \\ 
+    & liferay-d75dd575-bkcxz  & -2.68 & 48.70 \\ 
+    & liferay-d75dd575-zhg5p  & -0.32 & 45.13 \\ 
 \bottomrule
 \end{tabular}
-\end{table*}
+\caption{R2 and MAPE metrics per pod for different forecasting methods (rounded to 2 decimal places)}
+\label{tab:metrics_per_method_rounded}
+\end{table}
 
-We then attempted to forecast metrics from a different container. While a full analysis was planned, the root mean square error (RMSE) alone reached roughly 10 GB—comparable to the maximum values in the time series—indicating that the model failed to generalize.
 
-Although some variation between application instances was expected, the discrepancy was too large. This suggests that SARIMAX may not be ideal for forecasting resource needs for auto-scaling, where accurate anticipatory predictions across instances are critical.
+The best results were clearly from ARMA and ARIMA. ARIMA even got a slightly worse performance when compared with MAPE, as can be more clearly seen in Figure \ref{fig:mape}. When compared by $R^2$, though, ARIMA fares slightly better, but not significantly so (Figure \ref{fig:r2}).
 
-Our initial plan would be to use other traditional model validation metrics, such as confusion matrices and $R^2$. The discrepancy of the RMSE was so large, though, we thought there is not much future in investigating the module.
+\begin{figure}
+	\centering
+	\includegraphics[width=1\linewidth]{mape.png}
+	\caption{Mean absolute percentage error for every model, per pod.}
+	\label{fig:mape}
+\end{figure}
+
+SARIMA performed better than the most basic models, but worse than ARMA and ARIMA. This is not surprising, because the hyperparameters chosen for it were not, indeed, the ones one would prefer. It is a cautionary tale about using the proper hyperparameters: a more sophisticated model turned out worse for a poor choice. Sadly, better hyperparameters cannot be used with the current computational resoruces available. Nonetheless, the fact that SARIMA even got close to other models indicates it can be a proper model for the problem at hand.
+
+\begin{figure}
+	\centering
+	\includegraphics[width=1\linewidth]{r2.png}
+	\caption{$R^2$ every model, per pod.}
+	\label{fig:r2}
+\end{figure}
